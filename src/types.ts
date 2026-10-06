@@ -20,6 +20,7 @@ export interface StudentUser {
   name: string;
   displayName: string;
   shortRole: string;
+  photoURL?: string;
   avatarGradient: string;
   initials: string;
   classGrade: string;

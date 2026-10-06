@@ -25,6 +25,7 @@ import { getConditionBadgeStyle } from './BookCard';
 
 interface BookDetailsViewProps {
   book: BookListing;
+  sellerProfile?: StudentUser | null;
   isFavorite: boolean;
   onToggleFavorite: (bookId: string, e: React.MouseEvent) => void;
   onBack: () => void;
@@ -38,6 +39,7 @@ interface BookDetailsViewProps {
 
 export const BookDetailsView: React.FC<BookDetailsViewProps> = ({
   book,
+  sellerProfile,
   isFavorite,
   onToggleFavorite,
   onBack,
@@ -60,7 +62,21 @@ export const BookDetailsView: React.FC<BookDetailsViewProps> = ({
     setActiveImageIndex(0);
   }, [book.id]);
 
-  const seller: StudentUser = DEMO_USERS[book.sellerId] || DEMO_USERS['student-a'];
+  const seller: StudentUser = sellerProfile || {
+    id: book.sellerId,
+    name: book.sellerName || book.sellerDisplay || 'Verified Student',
+    displayName: book.sellerDisplay || book.sellerName || 'Verified Student',
+    shortRole: 'Verified Student',
+    avatarGradient: 'from-[#00E5FF] to-[#7B3FE4]',
+    initials: (book.sellerName || 'ST').slice(0, 2).toUpperCase(),
+    classGrade: book.classGrade,
+    board: book.board,
+    school: 'Verified Student Community',
+    memberSince: '2025',
+    verified: true,
+    online: true,
+    bio: 'Verified student sharing school textbooks on My Book Buddy.',
+  };
   const isOwner = book.sellerId === currentUser.id;
 
   const detailsRows = [
@@ -240,11 +256,20 @@ export const BookDetailsView: React.FC<BookDetailsViewProps> = ({
           {/* Seller Card */}
           <div className="rounded-3xl bg-[#0B0F26] border border-white/10 p-5 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div
-                className={`w-12 h-12 rounded-full bg-gradient-to-br ${seller.avatarGradient} flex items-center justify-center text-white font-extrabold text-base shrink-0 shadow-md`}
-              >
-                {seller.initials}
-              </div>
+              {seller.photoURL ? (
+                <img
+                  src={seller.photoURL}
+                  alt={seller.displayName}
+                  referrerPolicy="no-referrer"
+                  className="w-12 h-12 rounded-full object-cover border border-[#38BDF8]/50 shrink-0 shadow-md"
+                />
+              ) : (
+                <div
+                  className={`w-12 h-12 rounded-full bg-gradient-to-br ${seller.avatarGradient} flex items-center justify-center text-white font-extrabold text-base shrink-0 shadow-md`}
+                >
+                  {seller.initials}
+                </div>
+              )}
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h4 className="text-sm font-extrabold text-white truncate">

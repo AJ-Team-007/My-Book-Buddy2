@@ -2,7 +2,7 @@
   "entities": {
     "UserProfile": {
       "title": "UserProfile",
-      "description": "Public student profile information without sensitive PII.",
+      "description": "Public student profile stored at /users/{uid}. Contains no private email or phone number.",
       "type": "object",
       "properties": {
         "uid": {
@@ -10,10 +10,24 @@
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$"
         },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
         "displayName": {
           "type": "string",
           "minLength": 1,
           "maxLength": 100
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 200000
+        },
+        "class": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
         },
         "classGrade": {
           "type": "string",
@@ -45,6 +59,10 @@
           "minLength": 1,
           "maxLength": 40
         },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
         "updatedAt": {
           "type": "string",
           "format": "date-time"
@@ -52,26 +70,25 @@
       },
       "required": [
         "uid",
+        "name",
         "displayName",
+        "photoURL",
+        "class",
         "classGrade",
         "board",
         "school",
         "avatarGradient",
         "initials",
         "memberSince",
+        "createdAt",
         "updatedAt"
       ]
     },
     "BookListing": {
       "title": "BookListing",
-      "description": "Used school textbook listing created by a student.",
+      "description": "Real multi-user student book listing stored at /books/{bookId}.",
       "type": "object",
       "properties": {
-        "ownerUid": {
-          "type": "string",
-          "maxLength": 128,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
-        },
         "sellerId": {
           "type": "string",
           "maxLength": 128,
@@ -80,7 +97,7 @@
         "sellerName": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 80
+          "maxLength": 100
         },
         "sellerDisplay": {
           "type": "string",
@@ -151,9 +168,6 @@
         "requestsCount": {
           "type": "number"
         },
-        "isPublic": {
-          "type": "boolean"
-        },
         "createdAt": {
           "type": "string",
           "format": "date-time"
@@ -164,7 +178,6 @@
         }
       },
       "required": [
-        "ownerUid",
         "sellerId",
         "sellerName",
         "sellerDisplay",
@@ -183,17 +196,21 @@
         "galleryImages",
         "status",
         "requestsCount",
-        "isPublic",
         "createdAt",
         "updatedAt"
       ]
     },
     "BuyRequest": {
       "title": "BuyRequest",
-      "description": "Student request to buy a listed school textbook.",
+      "description": "Real buy request stored at /buyRequests/{requestId}.",
       "type": "object",
       "properties": {
-        "bookId": {
+        "requestId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "listingId": {
           "type": "string",
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$"
@@ -214,11 +231,6 @@
         "bookCondition": {
           "type": "string",
           "enum": ["Like New", "Good", "Used", "Heavily Used"]
-        },
-        "buyerUid": {
-          "type": "string",
-          "maxLength": 128,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
         },
         "buyerId": {
           "type": "string",
@@ -240,11 +252,6 @@
           "minLength": 1,
           "maxLength": 6
         },
-        "sellerUid": {
-          "type": "string",
-          "maxLength": 128,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
-        },
         "sellerId": {
           "type": "string",
           "maxLength": 128,
@@ -264,9 +271,6 @@
           "type": "string",
           "enum": ["Pending", "Accepted", "Declined", "Completed"]
         },
-        "isPublic": {
-          "type": "boolean"
-        },
         "createdAt": {
           "type": "string",
           "format": "date-time"
@@ -277,32 +281,48 @@
         }
       },
       "required": [
-        "bookId",
+        "requestId",
+        "listingId",
         "bookTitle",
         "bookCover",
         "bookPrice",
         "bookCondition",
-        "buyerUid",
         "buyerId",
         "buyerName",
         "buyerAvatarGradient",
         "buyerInitials",
-        "sellerUid",
         "sellerId",
         "sellerName",
         "message",
         "status",
-        "isPublic",
         "createdAt",
         "updatedAt"
       ]
     },
     "Conversation": {
       "title": "Conversation",
-      "description": "Student chat thread linked to a specific book listing.",
+      "description": "Real 2-user conversation stored at /conversations/{conversationId}.",
       "type": "object",
       "properties": {
-        "bookId": {
+        "conversationId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "participantIds": {
+          "type": "array"
+        },
+        "buyerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sellerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "listingId": {
           "type": "string",
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$"
@@ -324,51 +344,19 @@
           "minLength": 1,
           "maxLength": 200000
         },
-        "ownerUid": {
-          "type": "string",
-          "maxLength": 128,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
-        },
-        "otherStudentId": {
-          "type": "string",
-          "maxLength": 128,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
-        },
-        "otherStudentName": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 100
-        },
-        "otherStudentClass": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 60
-        },
-        "otherStudentAvatarGradient": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 100
-        },
-        "otherStudentInitials": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 6
-        },
         "lastMessage": {
           "type": "string",
           "minLength": 1,
           "maxLength": 500
         },
-        "lastTimestamp": {
+        "lastMessageSenderId": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 40
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
         },
-        "unreadCount": {
-          "type": "number"
-        },
-        "isPublic": {
-          "type": "boolean"
+        "lastMessageAt": {
+          "type": "string",
+          "format": "date-time"
         },
         "createdAt": {
           "type": "string",
@@ -380,39 +368,39 @@
         }
       },
       "required": [
-        "bookId",
+        "conversationId",
+        "participantIds",
+        "buyerId",
+        "sellerId",
+        "listingId",
         "bookTitle",
         "bookPrice",
         "bookCondition",
         "bookCover",
-        "ownerUid",
-        "otherStudentId",
-        "otherStudentName",
-        "otherStudentClass",
-        "otherStudentAvatarGradient",
-        "otherStudentInitials",
         "lastMessage",
-        "lastTimestamp",
-        "unreadCount",
-        "isPublic",
+        "lastMessageSenderId",
+        "lastMessageAt",
         "createdAt",
         "updatedAt"
       ]
     },
     "ChatMessage": {
       "title": "ChatMessage",
-      "description": "Individual message inside a student book conversation.",
+      "description": "Real-time message inside /conversations/{conversationId}/messages/{messageId}.",
       "type": "object",
       "properties": {
+        "messageId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
         "conversationId": {
           "type": "string",
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$"
         },
-        "senderUid": {
-          "type": "string",
-          "maxLength": 128,
-          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        "participantIds": {
+          "type": "array"
         },
         "senderId": {
           "type": "string",
@@ -424,19 +412,11 @@
           "minLength": 1,
           "maxLength": 500
         },
-        "timestamp": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 40
-        },
-        "read": {
-          "type": "boolean"
-        },
         "attachedPhoto": {
           "type": "string",
           "maxLength": 200000
         },
-        "isPublic": {
+        "read": {
           "type": "boolean"
         },
         "createdAt": {
@@ -445,13 +425,12 @@
         }
       },
       "required": [
+        "messageId",
         "conversationId",
-        "senderUid",
+        "participantIds",
         "senderId",
         "text",
-        "timestamp",
         "read",
-        "isPublic",
         "createdAt"
       ]
     },
@@ -496,27 +475,27 @@
   "firestore": {
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/UserProfile" },
-      "description": "Public student profile documents without PII."
+      "description": "Authenticated student profiles."
     },
     "/books/{bookId}": {
       "schema": { "$ref": "#/entities/BookListing" },
-      "description": "Marketplace book listings."
+      "description": "Real marketplace book listings."
     },
-    "/requests/{requestId}": {
+    "/buyRequests/{requestId}": {
       "schema": { "$ref": "#/entities/BuyRequest" },
-      "description": "Student buy requests for textbooks."
+      "description": "Real student buy requests."
     },
     "/conversations/{conversationId}": {
       "schema": { "$ref": "#/entities/Conversation" },
-      "description": "Student book exchange chat threads."
+      "description": "Real 2-user conversations."
     },
     "/conversations/{conversationId}/messages/{messageId}": {
       "schema": { "$ref": "#/entities/ChatMessage" },
-      "description": "Messages inside a specific conversation."
+      "description": "Real-time messages inside a conversation."
     },
     "/reports/{reportId}": {
       "schema": { "$ref": "#/entities/BookReport" },
-      "description": "Student moderation reports on listings."
+      "description": "Listing moderation reports."
     }
   }
 }

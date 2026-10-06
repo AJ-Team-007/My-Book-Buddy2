@@ -26,10 +26,11 @@ interface ProfileViewProps {
   requests: BuyRequest[];
   onNavigate: (screen: ScreenId) => void;
   onSwitchUser: (userId: string) => void;
-  onUpdateProfileName: (newName: string, newClass: string, newSchool: string) => void;
+  onUpdateProfileName: (newName: string, newClass: string, newBoard: string, newSchool: string) => void;
   isGoogleSignedIn: boolean;
   onGoogleSignIn: () => void;
   onGoogleSignOut: () => void;
+  isDemoMode?: boolean;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
@@ -42,13 +43,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   isGoogleSignedIn,
   onGoogleSignIn,
   onGoogleSignOut,
+  isDemoMode = false,
 }) => {
   const [editingProfile, setEditingProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
   const [nameInput, setNameInput] = useState(currentUser.displayName);
   const [classInput, setClassInput] = useState(currentUser.classGrade);
+  const [boardInput, setBoardInput] = useState(currentUser.board);
   const [schoolInput, setSchoolInput] = useState(currentUser.school);
+
+  React.useEffect(() => {
+    setNameInput(currentUser.displayName);
+    setClassInput(currentUser.classGrade);
+    setBoardInput(currentUser.board);
+    setSchoolInput(currentUser.school);
+  }, [currentUser]);
 
   const [privacyShowClass, setPrivacyShowClass] = useState(true);
   const [privacyCampusOnly, setPrivacyCampusOnly] = useState(true);
@@ -65,7 +75,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateProfileName(nameInput.trim() || currentUser.displayName, classInput, schoolInput);
+    onUpdateProfileName(
+      nameInput.trim() || currentUser.displayName,
+      classInput.trim() || 'Class 12',
+      boardInput.trim() || 'CBSE',
+      schoolInput.trim() || 'Student Community'
+    );
     setEditingProfile(false);
   };
 
@@ -74,9 +89,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       {/* Main Profile Header Card */}
       <div className="rounded-3xl bg-gradient-to-br from-[#121836] via-[#0B0F26] to-[#1D123C] border border-[#7B3FE4]/50 p-6 sm:p-8 text-center relative overflow-hidden shadow-2xl">
         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FF2E93] via-[#7B3FE4] to-[#00E5FF] p-1 mx-auto shadow-[0_0_30px_rgba(255,46,147,0.5)]">
-          <div className="w-full h-full rounded-full bg-[#0B0F26] flex items-center justify-center text-white text-2xl font-extrabold">
-            {currentUser.initials}
-          </div>
+          {currentUser.photoURL ? (
+            <img
+              src={currentUser.photoURL}
+              alt={currentUser.displayName}
+              referrerPolicy="no-referrer"
+              className="w-full h-full rounded-full object-cover bg-[#0B0F26]"
+            />
+          ) : (
+            <div className="w-full h-full rounded-full bg-[#0B0F26] flex items-center justify-center text-white text-2xl font-extrabold">
+              {currentUser.initials}
+            </div>
+          )}
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-2">
@@ -144,7 +168,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           className="rounded-3xl bg-[#0B0F26] border border-[#38BDF8]/50 p-5 space-y-4"
         >
           <h3 className="text-sm font-extrabold text-white">Edit Student Profile</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1">Display Name</label>
               <input
@@ -156,12 +180,28 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1">Class</label>
-              <input
-                type="text"
+              <select
                 value={classInput}
                 onChange={(e) => setClassInput(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-[#121836] border border-white/15 text-xs text-white"
-              />
+              >
+                <option value="Class 9">Class 9</option>
+                <option value="Class 10">Class 10</option>
+                <option value="Class 11">Class 11</option>
+                <option value="Class 12">Class 12</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1">Board</label>
+              <select
+                value={boardInput}
+                onChange={(e) => setBoardInput(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-[#121836] border border-white/15 text-xs text-white"
+              >
+                <option value="CBSE">CBSE</option>
+                <option value="ICSE">ICSE</option>
+                <option value="State Board">State Board</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1">School</label>
@@ -185,7 +225,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               type="submit"
               className="px-5 py-2 rounded-xl bg-[#10B981] text-xs font-extrabold text-white"
             >
-              Save Profile
+              Save Profile to Firebase
             </button>
           </div>
         </form>
@@ -195,7 +235,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       {showSettings && (
         <div className="rounded-3xl bg-[#0B0F26] border border-[#7B3FE4]/50 p-5 space-y-4">
           <h3 className="text-sm font-extrabold text-white">
-            Settings — Privacy Toggles & Quick Student Switcher
+            Settings — Privacy Controls
           </h3>
 
           <div className="space-y-2.5">
@@ -224,32 +264,34 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </label>
           </div>
 
-          <div>
-            <p className="text-xs font-bold text-[#38BDF8] mb-2">
-              Quick Student Account Switcher:
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {(['student-a', 'student-b', 'student-c'] as const).map((uid) => {
-                const u = DEMO_USERS[uid];
-                const active = currentUser.id === uid;
-                return (
-                  <button
-                    key={uid}
-                    type="button"
-                    onClick={() => onSwitchUser(uid)}
-                    className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${
-                      active
-                        ? 'bg-[#7B3FE4]/30 border-[#38BDF8] text-white'
-                        : 'bg-[#121836] border-white/10 text-slate-300 hover:text-white'
-                    }`}
-                  >
-                    <div>{u.shortRole}</div>
-                    <div className="text-[10px] text-slate-400 truncate">{u.displayName}</div>
-                  </button>
-                );
-              })}
+          {isDemoMode && (
+            <div>
+              <p className="text-xs font-bold text-[#FFD13B] mb-2">
+                Demo Mode Persona Switcher (DEMO DATA ONLY):
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {(['student-a', 'student-b', 'student-c'] as const).map((uid) => {
+                  const u = DEMO_USERS[uid];
+                  const active = currentUser.id === uid;
+                  return (
+                    <button
+                      key={uid}
+                      type="button"
+                      onClick={() => onSwitchUser(uid)}
+                      className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${
+                        active
+                          ? 'bg-[#7B3FE4]/30 border-[#38BDF8] text-white'
+                          : 'bg-[#121836] border-white/10 text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <div>{u.shortRole}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{u.displayName}</div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -358,6 +400,8 @@ interface DemoModeViewProps {
   onSwitchUser: (userId: string) => void;
   onStartDemoTour: () => void;
   onNavigate: (screen: ScreenId) => void;
+  isDemoMode?: boolean;
+  onToggleDemoMode?: (enable: boolean) => void;
 }
 
 export const DemoModeView: React.FC<DemoModeViewProps> = ({
@@ -365,6 +409,8 @@ export const DemoModeView: React.FC<DemoModeViewProps> = ({
   onSwitchUser,
   onStartDemoTour,
   onNavigate,
+  isDemoMode = false,
+  onToggleDemoMode,
 }) => {
   const demoUsersList = [
     DEMO_USERS['student-a'],
@@ -379,7 +425,9 @@ export const DemoModeView: React.FC<DemoModeViewProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
             <Sparkles className="w-6 h-6 text-[#FFD13B]" />
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Demo Mode</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+              Demo Mode (DEMO DATA)
+            </h1>
           </div>
 
           <span className="px-3.5 py-1 rounded-full bg-gradient-to-r from-[#FF2E93] to-[#7B3FE4] text-white text-xs font-extrabold shadow-md">
@@ -388,19 +436,35 @@ export const DemoModeView: React.FC<DemoModeViewProps> = ({
         </div>
 
         <p className="text-sm text-slate-300">
-          Explore the main features of My Book Buddy. Switch between student personas below or launch the interactive 7-step guided tour for Science Fair demonstrations.
+          Explore the main features of My Book Buddy using isolated Science Fair <strong className="text-[#FFD13B]">DEMO DATA</strong>. Normal logged-in mode uses 100% real Firebase multi-user data.
         </p>
 
-        {/* Start Demo Tour Button */}
-        <div className="pt-2">
+        {/* Start Demo Tour & Toggle Buttons */}
+        <div className="pt-2 flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={onStartDemoTour}
-            className="w-full sm:w-auto py-3.5 px-7 rounded-2xl bg-gradient-to-r from-[#10B981] via-[#059669] to-[#00E5FF] hover:brightness-110 text-white text-sm font-extrabold shadow-[0_10px_30px_rgba(16,185,129,0.45)] flex items-center justify-center gap-2.5 transition-all"
+            className="py-3.5 px-7 rounded-2xl bg-gradient-to-r from-[#10B981] via-[#059669] to-[#00E5FF] hover:brightness-110 text-white text-sm font-extrabold shadow-[0_10px_30px_rgba(16,185,129,0.45)] flex items-center justify-center gap-2.5 transition-all"
           >
             <Play className="w-4 h-4 fill-white" />
             <span>Start Demo Tour (7-Step Interactive Walkthrough)</span>
           </button>
+
+          {onToggleDemoMode && (
+            <button
+              type="button"
+              onClick={() => onToggleDemoMode(!isDemoMode)}
+              className={`py-3.5 px-5 rounded-2xl border text-xs sm:text-sm font-extrabold transition-all ${
+                isDemoMode
+                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 hover:bg-rose-500/30'
+                  : 'bg-[#121836] border-[#FFD13B]/50 text-[#FFD13B] hover:bg-white/10'
+              }`}
+            >
+              {isDemoMode
+                ? 'Exit Demo Mode → Return to Live Firebase Marketplace'
+                : 'Activate Isolated Science Fair Demo Data'}
+            </button>
+          )}
         </div>
       </div>
 

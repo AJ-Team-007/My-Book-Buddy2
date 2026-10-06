@@ -107,7 +107,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.12]">
-              Give Your Old Books a{' '}
+              Give Your Old Books to a{' '}
               <span className="bg-gradient-to-r from-[#00E5FF] via-[#FF2E93] to-[#7B3FE4] bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(255,46,147,0.3)]">
                 New Student
               </span>
@@ -228,18 +228,37 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {recentBooks.map((book) => (
-            <BookCard
-              key={book.id}
-              book={book}
-              isFavorite={favorites.includes(book.id)}
-              onToggleFavorite={onToggleFavorite}
-              onSelectBook={onSelectBook}
-              variant="horizontal"
-            />
-          ))}
-        </div>
+        {recentBooks.length === 0 ? (
+          <div className="rounded-3xl bg-[#0B0F26] border border-white/10 p-8 text-center space-y-3">
+            <BookOpen className="w-9 h-9 text-[#38BDF8] mx-auto" />
+            <h3 className="text-base font-bold text-white">
+              No school books listed in the marketplace yet
+            </h3>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Be the first student to publish a textbook! Click “Sell Your Book” to upload a real listing to Firebase.
+            </p>
+            <button
+              type="button"
+              onClick={() => onNavigate('sell')}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FF2E93] to-[#7B3FE4] text-white text-xs font-extrabold shadow-md"
+            >
+              + Sell Your First Book
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {recentBooks.map((book) => (
+              <BookCard
+                key={book.id}
+                book={book}
+                isFavorite={favorites.includes(book.id)}
+                onToggleFavorite={onToggleFavorite}
+                onSelectBook={onSelectBook}
+                variant="horizontal"
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* HOW IT WORKS (4 CONNECTED STEPS) */}
@@ -319,7 +338,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               Created & Owned by Jaimin & Aarush • My Book Buddy Student Marketplace
             </p>
             <p className="text-[11px] text-slate-400">
-              Give Your Old Books a New Student • Buy • Sell • Share • Learn
+              Give Your Old Books to a New Student • Buy • Sell • Share • Learn
             </p>
           </div>
         </div>

@@ -165,8 +165,9 @@ interface ChatViewProps {
   currentUser: StudentUser;
   onBack: () => void;
   onSendMessage: (text: string, attachedPhoto?: string, isLocationPin?: boolean) => void;
-  onSimulatePartnerReply: () => void;
+  onSimulatePartnerReply?: () => void;
   onViewBookDetails: (bookId: string) => void;
+  isDemoMode?: boolean;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -177,6 +178,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onSendMessage,
   onSimulatePartnerReply,
   onViewBookDetails,
+  isDemoMode = false,
 }) => {
   const [inputText, setInputText] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -257,16 +259,18 @@ export const ChatView: React.FC<ChatViewProps> = ({
               >
                 View Book Details
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onSimulatePartnerReply();
-                }}
-                className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-[#38BDF8] hover:bg-white/10"
-              >
-                Trigger Partner Reply
-              </button>
+              {isDemoMode && onSimulatePartnerReply && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onSimulatePartnerReply();
+                  }}
+                  className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-[#38BDF8] hover:bg-white/10"
+                >
+                  Trigger Partner Reply (Demo)
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -389,13 +393,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
           📍 School Gate 4 PM
         </button>
 
-        <button
-          type="button"
-          onClick={onSimulatePartnerReply}
-          className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#FF2E93]/25 to-[#7B3FE4]/25 hover:from-[#FF2E93]/40 hover:to-[#7B3FE4]/40 border border-[#FF2E93]/50 text-[11px] font-extrabold text-[#FFD13B] whitespace-nowrap shrink-0"
-        >
-          ⚡ Partner Reply
-        </button>
+        {isDemoMode && onSimulatePartnerReply && (
+          <button
+            type="button"
+            onClick={onSimulatePartnerReply}
+            className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#FF2E93]/25 to-[#7B3FE4]/25 hover:from-[#FF2E93]/40 hover:to-[#7B3FE4]/40 border border-[#FF2E93]/50 text-[11px] font-extrabold text-[#FFD13B] whitespace-nowrap shrink-0"
+          >
+            ⚡ Partner Reply (Demo)
+          </button>
+        )}
       </div>
 
       {/* Bottom Input Bar */}

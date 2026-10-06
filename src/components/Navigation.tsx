@@ -197,10 +197,21 @@ export const TopNav: React.FC<TopNavProps> = ({
             onClick={() => onNavigate('profile')}
             className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full bg-[#121836] hover:bg-[#1E293B] border border-white/15 transition-all"
           >
-            <div
-              className={`w-7 h-7 rounded-full bg-gradient-to-br ${currentUser.avatarGradient} flex items-center justify-center text-white text-xs font-extrabold shadow-sm relative`}
-            >
-              {currentUser.initials}
+            <div className="relative">
+              {currentUser.photoURL ? (
+                <img
+                  src={currentUser.photoURL}
+                  alt={currentUser.displayName}
+                  referrerPolicy="no-referrer"
+                  className="w-7 h-7 rounded-full object-cover border border-[#38BDF8]/50"
+                />
+              ) : (
+                <div
+                  className={`w-7 h-7 rounded-full bg-gradient-to-br ${currentUser.avatarGradient} flex items-center justify-center text-white text-xs font-extrabold shadow-sm`}
+                >
+                  {currentUser.initials}
+                </div>
+              )}
               <span className="w-2 h-2 rounded-full bg-[#10B981] ring-2 ring-[#070A18] absolute -bottom-0.5 -right-0.5" />
             </div>
             <span className="hidden sm:inline text-xs font-semibold text-slate-200 max-w-[110px] truncate">
@@ -463,7 +474,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
               Created & Owned by Jaimin & Aarush
             </p>
             <p className="text-[10px] text-slate-400 mt-0.5">
-              Give Your Old Books a New Student
+              Give Your Old Books to a New Student
             </p>
           </div>
         </div>

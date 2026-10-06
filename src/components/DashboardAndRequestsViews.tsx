@@ -10,6 +10,7 @@ import {
   Check,
   X,
   Clock,
+  Trash2,
 } from 'lucide-react';
 import { BookListing, BuyRequest, ScreenId, StudentUser } from '../types';
 import { getConditionBadgeStyle } from './BookCard';
@@ -20,6 +21,7 @@ interface DashboardViewProps {
   currentUser: StudentUser;
   onEditBook: (book: BookListing) => void;
   onToggleSoldStatus: (bookId: string) => void;
+  onDeleteBook?: (bookId: string) => void;
   onSelectBook: (book: BookListing) => void;
   onNavigate: (screen: ScreenId) => void;
   onOpenChatFromRequest: (req: BuyRequest) => void;
@@ -31,6 +33,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   currentUser,
   onEditBook,
   onToggleSoldStatus,
+  onDeleteBook,
   onSelectBook,
   onNavigate,
   onOpenChatFromRequest,
@@ -223,7 +226,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </span>
                   </div>
 
-                  {/* Compact Edit and Mark as Sold / Relist buttons */}
+                  {/* Compact Edit, Mark as Sold / Relist, and Delete buttons */}
                   <div className="pt-2 flex items-center gap-2">
                     <button
                       type="button"
@@ -255,6 +258,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </>
                       )}
                     </button>
+
+                    {onDeleteBook && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteBook(book.id)}
+                        title="Delete Listing"
+                        className="p-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 flex items-center justify-center transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

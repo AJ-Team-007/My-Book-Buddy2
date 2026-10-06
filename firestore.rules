@@ -28,46 +28,57 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email_verified == true;
     }
 
-    // 1. UserProfile Validation Blueprint (No PII stored)
+    // 1. UserProfile Validation Blueprint (No PII like email or phone stored)
     function isValidUserProfile(data) {
       return data.keys().hasAll([
         'uid',
+        'name',
         'displayName',
+        'photoURL',
+        'class',
         'classGrade',
         'board',
         'school',
         'avatarGradient',
         'initials',
         'memberSince',
+        'createdAt',
         'updatedAt'
       ]) &&
       data.keys().hasOnly([
         'uid',
+        'name',
         'displayName',
+        'photoURL',
+        'class',
         'classGrade',
         'board',
         'school',
         'avatarGradient',
         'initials',
         'memberSince',
+        'createdAt',
         'updatedAt'
       ]) &&
       data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
       data.uid == request.auth.uid &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
       data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+      data.photoURL is string && data.photoURL.size() <= 200000 &&
+      data.class is string && data.class.size() >= 1 && data.class.size() <= 40 &&
       data.classGrade is string && data.classGrade.size() >= 1 && data.classGrade.size() <= 40 &&
       data.board is string && data.board.size() >= 1 && data.board.size() <= 40 &&
       data.school is string && data.school.size() >= 1 && data.school.size() <= 120 &&
       data.avatarGradient is string && data.avatarGradient.size() >= 1 && data.avatarGradient.size() <= 100 &&
       data.initials is string && data.initials.size() >= 1 && data.initials.size() <= 6 &&
       data.memberSince is string && data.memberSince.size() >= 1 && data.memberSince.size() <= 40 &&
+      data.createdAt is timestamp &&
       data.updatedAt is timestamp;
     }
 
     // 2. BookListing Validation Blueprint
     function isValidBookListing(data) {
       return data.keys().hasAll([
-        'ownerUid',
         'sellerId',
         'sellerName',
         'sellerDisplay',
@@ -86,12 +97,10 @@ service cloud.firestore {
         'galleryImages',
         'status',
         'requestsCount',
-        'isPublic',
         'createdAt',
         'updatedAt'
       ]) &&
       data.keys().hasOnly([
-        'ownerUid',
         'sellerId',
         'sellerName',
         'sellerDisplay',
@@ -110,13 +119,11 @@ service cloud.firestore {
         'galleryImages',
         'status',
         'requestsCount',
-        'isPublic',
         'createdAt',
         'updatedAt'
       ]) &&
-      data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 && data.ownerUid.matches('^[a-zA-Z0-9_\\-]+$') &&
       data.sellerId is string && data.sellerId.size() >= 1 && data.sellerId.size() <= 128 && data.sellerId.matches('^[a-zA-Z0-9_\\-]+$') &&
-      data.sellerName is string && data.sellerName.size() >= 1 && data.sellerName.size() <= 80 &&
+      data.sellerName is string && data.sellerName.size() >= 1 && data.sellerName.size() <= 100 &&
       data.sellerDisplay is string && data.sellerDisplay.size() >= 1 && data.sellerDisplay.size() <= 100 &&
       data.title is string && data.title.size() >= 1 && data.title.size() <= 150 &&
       data.author is string && data.author.size() >= 1 && data.author.size() <= 120 &&
@@ -134,7 +141,6 @@ service cloud.firestore {
       data.galleryImages[0] is string && data.galleryImages[0].size() <= 200000 &&
       data.status is string && (data.status == 'Available' || data.status == 'Sold') &&
       data.requestsCount is number && data.requestsCount >= 0 && data.requestsCount <= 10000 &&
-      data.isPublic is bool &&
       data.createdAt is timestamp &&
       data.updatedAt is timestamp;
     }
@@ -142,61 +148,55 @@ service cloud.firestore {
     // 3. BuyRequest Validation Blueprint
     function isValidBuyRequest(data) {
       return data.keys().hasAll([
-        'bookId',
+        'requestId',
+        'listingId',
         'bookTitle',
         'bookCover',
         'bookPrice',
         'bookCondition',
-        'buyerUid',
         'buyerId',
         'buyerName',
         'buyerAvatarGradient',
         'buyerInitials',
-        'sellerUid',
         'sellerId',
         'sellerName',
         'message',
         'status',
-        'isPublic',
         'createdAt',
         'updatedAt'
       ]) &&
       data.keys().hasOnly([
-        'bookId',
+        'requestId',
+        'listingId',
         'bookTitle',
         'bookCover',
         'bookPrice',
         'bookCondition',
-        'buyerUid',
         'buyerId',
         'buyerName',
         'buyerAvatarGradient',
         'buyerInitials',
-        'sellerUid',
         'sellerId',
         'sellerName',
         'message',
         'status',
-        'isPublic',
         'createdAt',
         'updatedAt'
       ]) &&
-      data.bookId is string && data.bookId.size() >= 1 && data.bookId.size() <= 128 && data.bookId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.requestId is string && data.requestId.size() >= 1 && data.requestId.size() <= 128 && data.requestId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.listingId is string && data.listingId.size() >= 1 && data.listingId.size() <= 128 && data.listingId.matches('^[a-zA-Z0-9_\\-]+$') &&
       data.bookTitle is string && data.bookTitle.size() >= 1 && data.bookTitle.size() <= 150 &&
       data.bookCover is string && data.bookCover.size() >= 1 && data.bookCover.size() <= 200000 &&
       data.bookPrice is number && data.bookPrice >= 1 && data.bookPrice <= 50000 &&
       data.bookCondition is string && (data.bookCondition == 'Like New' || data.bookCondition == 'Good' || data.bookCondition == 'Used' || data.bookCondition == 'Heavily Used') &&
-      data.buyerUid is string && data.buyerUid.size() >= 1 && data.buyerUid.size() <= 128 && data.buyerUid.matches('^[a-zA-Z0-9_\\-]+$') &&
       data.buyerId is string && data.buyerId.size() >= 1 && data.buyerId.size() <= 128 && data.buyerId.matches('^[a-zA-Z0-9_\\-]+$') &&
       data.buyerName is string && data.buyerName.size() >= 1 && data.buyerName.size() <= 100 &&
       data.buyerAvatarGradient is string && data.buyerAvatarGradient.size() >= 1 && data.buyerAvatarGradient.size() <= 100 &&
       data.buyerInitials is string && data.buyerInitials.size() >= 1 && data.buyerInitials.size() <= 6 &&
-      data.sellerUid is string && data.sellerUid.size() >= 1 && data.sellerUid.size() <= 128 && data.sellerUid.matches('^[a-zA-Z0-9_\\-]+$') &&
       data.sellerId is string && data.sellerId.size() >= 1 && data.sellerId.size() <= 128 && data.sellerId.matches('^[a-zA-Z0-9_\\-]+$') &&
       data.sellerName is string && data.sellerName.size() >= 1 && data.sellerName.size() <= 100 &&
       data.message is string && data.message.size() >= 1 && data.message.size() <= 250 &&
       data.status is string && (data.status == 'Pending' || data.status == 'Accepted' || data.status == 'Declined' || data.status == 'Completed') &&
-      data.isPublic is bool &&
       data.createdAt is timestamp &&
       data.updatedAt is timestamp;
     }
@@ -204,58 +204,52 @@ service cloud.firestore {
     // 4. Conversation Validation Blueprint
     function isValidConversation(data) {
       return data.keys().hasAll([
-        'bookId',
+        'conversationId',
+        'participantIds',
+        'buyerId',
+        'sellerId',
+        'listingId',
         'bookTitle',
         'bookPrice',
         'bookCondition',
         'bookCover',
-        'ownerUid',
-        'otherStudentId',
-        'otherStudentName',
-        'otherStudentClass',
-        'otherStudentAvatarGradient',
-        'otherStudentInitials',
         'lastMessage',
-        'lastTimestamp',
-        'unreadCount',
-        'isPublic',
+        'lastMessageSenderId',
+        'lastMessageAt',
         'createdAt',
         'updatedAt'
       ]) &&
       data.keys().hasOnly([
-        'bookId',
+        'conversationId',
+        'participantIds',
+        'buyerId',
+        'sellerId',
+        'listingId',
         'bookTitle',
         'bookPrice',
         'bookCondition',
         'bookCover',
-        'ownerUid',
-        'otherStudentId',
-        'otherStudentName',
-        'otherStudentClass',
-        'otherStudentAvatarGradient',
-        'otherStudentInitials',
         'lastMessage',
-        'lastTimestamp',
-        'unreadCount',
-        'isPublic',
+        'lastMessageSenderId',
+        'lastMessageAt',
         'createdAt',
         'updatedAt'
       ]) &&
-      data.bookId is string && data.bookId.size() >= 1 && data.bookId.size() <= 128 && data.bookId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.conversationId is string && data.conversationId.size() >= 1 && data.conversationId.size() <= 128 && data.conversationId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.participantIds is list && data.participantIds.size() == 2 &&
+      data.participantIds[0] is string && data.participantIds[0].size() <= 128 &&
+      data.buyerId is string && data.buyerId.size() >= 1 && data.buyerId.size() <= 128 && data.buyerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.sellerId is string && data.sellerId.size() >= 1 && data.sellerId.size() <= 128 && data.sellerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.buyerId in data.participantIds &&
+      data.sellerId in data.participantIds &&
+      data.listingId is string && data.listingId.size() >= 1 && data.listingId.size() <= 128 && data.listingId.matches('^[a-zA-Z0-9_\\-]+$') &&
       data.bookTitle is string && data.bookTitle.size() >= 1 && data.bookTitle.size() <= 150 &&
       data.bookPrice is number && data.bookPrice >= 1 && data.bookPrice <= 50000 &&
       data.bookCondition is string && (data.bookCondition == 'Like New' || data.bookCondition == 'Good' || data.bookCondition == 'Used' || data.bookCondition == 'Heavily Used') &&
       data.bookCover is string && data.bookCover.size() >= 1 && data.bookCover.size() <= 200000 &&
-      data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 && data.ownerUid.matches('^[a-zA-Z0-9_\\-]+$') &&
-      data.otherStudentId is string && data.otherStudentId.size() >= 1 && data.otherStudentId.size() <= 128 && data.otherStudentId.matches('^[a-zA-Z0-9_\\-]+$') &&
-      data.otherStudentName is string && data.otherStudentName.size() >= 1 && data.otherStudentName.size() <= 100 &&
-      data.otherStudentClass is string && data.otherStudentClass.size() >= 1 && data.otherStudentClass.size() <= 60 &&
-      data.otherStudentAvatarGradient is string && data.otherStudentAvatarGradient.size() >= 1 && data.otherStudentAvatarGradient.size() <= 100 &&
-      data.otherStudentInitials is string && data.otherStudentInitials.size() >= 1 && data.otherStudentInitials.size() <= 6 &&
       data.lastMessage is string && data.lastMessage.size() >= 1 && data.lastMessage.size() <= 500 &&
-      data.lastTimestamp is string && data.lastTimestamp.size() >= 1 && data.lastTimestamp.size() <= 40 &&
-      data.unreadCount is number && data.unreadCount >= 0 && data.unreadCount <= 1000 &&
-      data.isPublic is bool &&
+      data.lastMessageSenderId is string && data.lastMessageSenderId.size() >= 1 && data.lastMessageSenderId.size() <= 128 && data.lastMessageSenderId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.lastMessageAt is timestamp &&
       data.createdAt is timestamp &&
       data.updatedAt is timestamp;
     }
@@ -263,35 +257,33 @@ service cloud.firestore {
     // 5. ChatMessage Validation Blueprint
     function isValidChatMessage(data) {
       return data.keys().hasAll([
+        'messageId',
         'conversationId',
-        'senderUid',
+        'participantIds',
         'senderId',
         'text',
-        'timestamp',
         'read',
-        'isPublic',
         'createdAt'
       ]) &&
       data.keys().hasOnly([
+        'messageId',
         'conversationId',
-        'senderUid',
+        'participantIds',
         'senderId',
         'text',
-        'timestamp',
-        'read',
         'attachedPhoto',
-        'isPublic',
+        'read',
         'createdAt'
       ]) &&
+      data.messageId is string && data.messageId.size() >= 1 && data.messageId.size() <= 128 && data.messageId.matches('^[a-zA-Z0-9_\\-]+$') &&
       data.conversationId is string && data.conversationId.size() >= 1 && data.conversationId.size() <= 128 && data.conversationId.matches('^[a-zA-Z0-9_\\-]+$') &&
-      data.senderUid is string && data.senderUid.size() >= 1 && data.senderUid.size() <= 128 && data.senderUid.matches('^[a-zA-Z0-9_\\-]+$') &&
-      data.senderUid == request.auth.uid &&
+      data.participantIds is list && data.participantIds.size() == 2 &&
+      data.participantIds[0] is string && data.participantIds[0].size() <= 128 &&
       data.senderId is string && data.senderId.size() >= 1 && data.senderId.size() <= 128 && data.senderId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.senderId in data.participantIds &&
       data.text is string && data.text.size() >= 1 && data.text.size() <= 500 &&
-      data.timestamp is string && data.timestamp.size() >= 1 && data.timestamp.size() <= 40 &&
-      data.read is bool &&
       (!('attachedPhoto' in data) || (data.attachedPhoto is string && data.attachedPhoto.size() <= 200000)) &&
-      data.isPublic is bool &&
+      data.read is bool &&
       data.createdAt is timestamp;
     }
 
@@ -320,104 +312,142 @@ service cloud.firestore {
     }
 
     // Collection: /users/{userId}
+    // Public student profile info (no email or phone stored)
     match /users/{userId} {
       allow get: if isSignedIn() && isValidId(userId) && existing().uid == userId;
       allow list: if isSignedIn() && existing().uid == request.auth.uid;
       allow create: if isVerifiedUser() && isValidId(userId) && userId == request.auth.uid &&
-        isValidUserProfile(incoming()) && incoming().updatedAt == request.time;
+        isValidUserProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
       allow update: if isVerifiedUser() && isValidId(userId) && userId == request.auth.uid &&
         isValidUserProfile(incoming()) &&
         incoming().uid == existing().uid &&
-        incoming().memberSince == existing().memberSince &&
+        incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time &&
-        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'classGrade', 'board', 'school', 'avatarGradient', 'initials', 'updatedAt']);
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'displayName', 'photoURL', 'class', 'classGrade', 'board', 'school',
+          'avatarGradient', 'initials', 'updatedAt'
+        ]);
     }
 
     // Collection: /books/{bookId}
+    // Authenticated users can read available listings or their own listings; only owner can create/update/delete
     match /books/{bookId} {
-      allow get: if isValidId(bookId) && (existing().isPublic == true || (isSignedIn() && existing().ownerUid == request.auth.uid));
-      allow list: if existing().isPublic == true || (isSignedIn() && existing().ownerUid == request.auth.uid);
+      allow get: if isSignedIn() && isValidId(bookId) && (existing().status == 'Available' || existing().sellerId == request.auth.uid);
+      allow list: if isSignedIn() && (existing().status == 'Available' || existing().sellerId == request.auth.uid);
       allow create: if isVerifiedUser() && isValidId(bookId) &&
         isValidBookListing(incoming()) &&
-        incoming().ownerUid == request.auth.uid &&
+        incoming().sellerId == request.auth.uid &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time;
       allow update: if isVerifiedUser() && isValidId(bookId) &&
         isValidBookListing(incoming()) &&
-        incoming().ownerUid == existing().ownerUid &&
+        incoming().sellerId == existing().sellerId &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time && (
-          // Action 1: Owner edits book details or status
-          (existing().ownerUid == request.auth.uid &&
+          // Tier 1: Seller updates their own book listing or marks as Sold
+          (existing().sellerId == request.auth.uid &&
             incoming().diff(existing()).affectedKeys().hasOnly([
-              'title', 'author', 'subject', 'classGrade', 'board', 'medium', 'edition',
-              'condition', 'price', 'originalPrice', 'description', 'coverImage',
-              'galleryImages', 'status', 'updatedAt'
+              'sellerName', 'sellerDisplay', 'title', 'author', 'subject', 'classGrade',
+              'board', 'medium', 'edition', 'condition', 'price', 'originalPrice',
+              'description', 'coverImage', 'galleryImages', 'status', 'requestsCount', 'updatedAt'
             ])
           ) ||
-          // Action 2: Verified student increments requestsCount or toggles demo book status
-          (existing().isPublic == true &&
-            incoming().diff(existing()).affectedKeys().hasOnly(['requestsCount', 'status', 'updatedAt'])
+          // Tier 2: Buyer increments requestsCount when sending a buy request
+          (existing().status == 'Available' &&
+            incoming().requestsCount == existing().requestsCount + 1 &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['requestsCount', 'updatedAt'])
           )
         );
+      allow delete: if isVerifiedUser() && isValidId(bookId) && existing().sellerId == request.auth.uid;
     }
 
-    // Collection: /requests/{requestId}
-    match /requests/{requestId} {
-      allow get: if isValidId(requestId) && (existing().isPublic == true || (isSignedIn() && (existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid)));
-      allow list: if existing().isPublic == true || (isSignedIn() && (existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid));
+    // Collection: /buyRequests/{requestId}
+    // Buyers can create & read their own requests; Sellers can read & accept/decline requests for their listings
+    match /buyRequests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId) &&
+        (existing().buyerId == request.auth.uid || existing().sellerId == request.auth.uid);
+      allow list: if isSignedIn() &&
+        (existing().buyerId == request.auth.uid || existing().sellerId == request.auth.uid);
       allow create: if isVerifiedUser() && isValidId(requestId) &&
         isValidBuyRequest(incoming()) &&
-        incoming().buyerUid == request.auth.uid &&
+        incoming().requestId == requestId &&
+        incoming().buyerId == request.auth.uid &&
+        incoming().buyerId != incoming().sellerId &&
+        incoming().status == 'Pending' &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time &&
-        exists(/databases/$(database)/documents/books/$(incoming().bookId));
+        exists(/databases/$(database)/documents/books/$(incoming().listingId));
       allow update: if isVerifiedUser() && isValidId(requestId) &&
         isValidBuyRequest(incoming()) &&
         existing().status != 'Declined' &&
         existing().status != 'Completed' &&
-        incoming().bookId == existing().bookId &&
-        incoming().buyerUid == existing().buyerUid &&
-        incoming().sellerUid == existing().sellerUid &&
+        incoming().requestId == existing().requestId &&
+        incoming().listingId == existing().listingId &&
+        incoming().buyerId == existing().buyerId &&
+        incoming().sellerId == existing().sellerId &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time &&
-        (existing().sellerUid == request.auth.uid || existing().buyerUid == request.auth.uid || existing().isPublic == true) &&
+        (existing().sellerId == request.auth.uid || existing().buyerId == request.auth.uid) &&
         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
     }
 
     // Collection: /conversations/{conversationId}
+    // Only participants of a conversation can read/write the conversation and its messages
     match /conversations/{conversationId} {
-      allow get: if isValidId(conversationId) && (existing().isPublic == true || (isSignedIn() && existing().ownerUid == request.auth.uid));
-      allow list: if existing().isPublic == true || (isSignedIn() && existing().ownerUid == request.auth.uid);
+      allow get: if isSignedIn() && isValidId(conversationId) &&
+        (existing().buyerId == request.auth.uid || existing().sellerId == request.auth.uid);
+      allow list: if isSignedIn() &&
+        (request.auth.uid in existing().participantIds);
       allow create: if isVerifiedUser() && isValidId(conversationId) &&
         isValidConversation(incoming()) &&
-        incoming().ownerUid == request.auth.uid &&
+        incoming().conversationId == conversationId &&
+        (incoming().buyerId == request.auth.uid || incoming().sellerId == request.auth.uid) &&
+        incoming().lastMessageSenderId == request.auth.uid &&
+        incoming().lastMessageAt == request.time &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time &&
-        exists(/databases/$(database)/documents/books/$(incoming().bookId));
+        exists(/databases/$(database)/documents/books/$(incoming().listingId));
       allow update: if isVerifiedUser() && isValidId(conversationId) &&
         isValidConversation(incoming()) &&
-        incoming().bookId == existing().bookId &&
-        incoming().ownerUid == existing().ownerUid &&
+        incoming().conversationId == existing().conversationId &&
+        incoming().participantIds == existing().participantIds &&
+        incoming().buyerId == existing().buyerId &&
+        incoming().sellerId == existing().sellerId &&
+        incoming().listingId == existing().listingId &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time &&
-        (existing().ownerUid == request.auth.uid || existing().isPublic == true) &&
-        incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'lastTimestamp', 'unreadCount', 'updatedAt']);
+        (existing().buyerId == request.auth.uid || existing().sellerId == request.auth.uid) &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'lastMessage', 'lastMessageSenderId', 'lastMessageAt', 'updatedAt'
+        ]);
 
       // Subcollection: /conversations/{conversationId}/messages/{messageId}
       match /messages/{messageId} {
-        allow get: if isValidId(conversationId) && isValidId(messageId) &&
-          (existing().isPublic == true || (isSignedIn() && existing().senderUid == request.auth.uid)) &&
-          get(/databases/$(database)/documents/conversations/$(conversationId)).data.isPublic == true;
-        allow list: if existing().isPublic == true || (isSignedIn() && existing().senderUid == request.auth.uid);
+        allow get: if isSignedIn() && isValidId(conversationId) && isValidId(messageId) &&
+          (request.auth.uid in existing().participantIds) &&
+          (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
+        allow list: if isSignedIn() &&
+          (request.auth.uid in existing().participantIds);
         allow create: if isVerifiedUser() && isValidId(conversationId) && isValidId(messageId) &&
           isValidChatMessage(incoming()) &&
+          incoming().messageId == messageId &&
           incoming().conversationId == conversationId &&
+          incoming().senderId == request.auth.uid &&
           incoming().createdAt == request.time &&
-          (
-            get(/databases/$(database)/documents/conversations/$(conversationId)).data.ownerUid == request.auth.uid ||
-            get(/databases/$(database)/documents/conversations/$(conversationId)).data.isPublic == true
-          );
+          incoming().participantIds == get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds &&
+          (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds);
+        allow update: if isVerifiedUser() && isValidId(conversationId) && isValidId(messageId) &&
+          isValidChatMessage(incoming()) &&
+          incoming().messageId == existing().messageId &&
+          incoming().conversationId == existing().conversationId &&
+          incoming().participantIds == existing().participantIds &&
+          incoming().senderId == existing().senderId &&
+          incoming().text == existing().text &&
+          incoming().createdAt == existing().createdAt &&
+          (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['read']);
       }
     }
 
