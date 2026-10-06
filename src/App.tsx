@@ -17,6 +17,10 @@ import {
   auth,
   db,
   signInWithGoogle,
+  signInWithGoogleRedirect,
+  checkGoogleRedirectResult,
+  formatFirebaseAuthError,
+  ParsedAuthError,
   signOutUser,
   handleFirestoreError,
   OperationType,
@@ -95,7 +99,7 @@ export default function App() {
   // Firebase Auth & Mode State
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [authReady, setAuthReady] = useState<boolean>(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<ParsedAuthError | null>(null);
   const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
 
   // Real Authenticated Users Map & Current User Profile (/users/{uid})
@@ -196,8 +200,21 @@ export default function App() {
     return null;
   };
 
-  // 1. Listen to Firebase Authentication State & Create/Load /users/{uid}
+  // 1. Listen to Firebase Authentication State, Handle Redirect Result & Create/Update /users/{uid}
   useEffect(() => {
+    checkGoogleRedirectResult()
+      .then((result) => {
+        if (result?.user) {
+          setIsDemoMode(false);
+          setAuthError(null);
+          showToast('Signed in with Google! Live Firebase Marketplace active.');
+        }
+      })
+      .catch((err) => {
+        const parsed = formatFirebaseAuthError(err);
+        setAuthError(parsed);
+      });
+
     const unsub = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       setAuthReady(true);
@@ -210,6 +227,7 @@ export default function App() {
         const cleanName = rawName.slice(0, 80);
         const initials = buildInitials(cleanName);
         const photoURL = (user.photoURL || '').slice(0, 2000);
+        const email = (user.email || '').slice(0, 150);
         const monthYear = new Date().toLocaleDateString('en-US', {
           month: 'short',
           year: 'numeric',
@@ -221,25 +239,67 @@ export default function App() {
 
           if (existingSnap.exists()) {
             const data = existingSnap.data();
+            const savedName = String(data.name || data.displayName || cleanName).slice(
+              0,
+              100
+            );
+            const savedDisplayName = String(
+              data.displayName || data.name || cleanName
+            ).slice(0, 100);
+            const savedPhoto = String(photoURL || data.photoURL || '').slice(0, 2000);
+            const savedClass = String(data.class || data.classGrade || 'Class 12').slice(
+              0,
+              40
+            );
+            const savedBoard = String(data.board || 'CBSE').slice(0, 40);
+            const savedSchool = String(
+              data.school || 'Verified Student Community'
+            ).slice(0, 120);
+            const savedGradient = String(
+              data.avatarGradient || 'from-[#FF2E93] via-[#7B3FE4] to-[#00E5FF]'
+            ).slice(0, 100);
+            const savedInitials = String(
+              data.initials || buildInitials(savedName)
+            ).slice(0, 6);
+            const savedMemberSince = String(data.memberSince || monthYear).slice(0, 40);
+
             const existingProfile: StudentUser = {
               id: user.uid,
-              name: String(data.name || cleanName),
-              displayName: String(data.displayName || cleanName),
+              name: savedName,
+              displayName: savedDisplayName,
               shortRole: 'Verified Student',
-              photoURL: String(data.photoURL || photoURL) || undefined,
-              avatarGradient: String(
-                data.avatarGradient || 'from-[#FF2E93] via-[#7B3FE4] to-[#00E5FF]'
-              ),
-              initials: String(data.initials || initials),
-              classGrade: String(data.classGrade || data.class || 'Class 12'),
-              board: String(data.board || 'CBSE'),
-              school: String(data.school || 'Student Community'),
-              memberSince: String(data.memberSince || monthYear),
+              photoURL: savedPhoto || undefined,
+              avatarGradient: savedGradient,
+              initials: savedInitials,
+              classGrade: savedClass,
+              board: savedBoard,
+              school: savedSchool,
+              memberSince: savedMemberSince,
               verified: true,
               online: true,
               bio: 'Verified student on My Book Buddy.',
             };
             setRealUsersMap((prev) => ({ ...prev, [user.uid]: existingProfile }));
+
+            await setDoc(userRef, {
+              uid: user.uid,
+              name: savedName,
+              displayName: savedDisplayName,
+              photoURL: savedPhoto,
+              email,
+              class: savedClass,
+              classGrade: savedClass,
+              board: savedBoard,
+              school: savedSchool,
+              avatarGradient: savedGradient,
+              initials: savedInitials,
+              memberSince: savedMemberSince,
+              createdAt:
+                data.createdAt instanceof Timestamp
+                  ? data.createdAt
+                  : serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
           } else {
             const newProfile: StudentUser = {
               id: user.uid,
@@ -263,7 +323,8 @@ export default function App() {
               uid: user.uid,
               name: newProfile.name.slice(0, 100),
               displayName: newProfile.displayName.slice(0, 100),
-              photoURL: photoURL,
+              photoURL,
+              email,
               class: newProfile.classGrade.slice(0, 40),
               classGrade: newProfile.classGrade.slice(0, 40),
               board: newProfile.board.slice(0, 40),
@@ -675,16 +736,22 @@ export default function App() {
   );
 
   // Auth Handlers
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async (preferRedirect = false) => {
     setAuthError(null);
     try {
-      await signInWithGoogle();
-      setIsDemoMode(false);
-      setActiveScreen('home');
-      showToast('Signed in with Google! Live Firebase Marketplace active.');
+      const cred = preferRedirect
+        ? await signInWithGoogleRedirect()
+        : await signInWithGoogle(false);
+      if (cred?.user) {
+        setIsDemoMode(false);
+        setActiveScreen('home');
+        showToast('Signed in with Google! Live Firebase Marketplace active.');
+      }
     } catch (err) {
       console.error('Google Sign-In error:', err);
-      setAuthError('Google Sign-In popup was closed or blocked. Please try again.');
+      const parsed = formatFirebaseAuthError(err);
+      setAuthError(parsed);
+      showToast(parsed.message);
     }
   };
 

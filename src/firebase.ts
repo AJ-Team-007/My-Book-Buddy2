@@ -3,7 +3,12 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  setPersistence,
+  browserLocalPersistence,
   signOut as firebaseSignOut,
+  UserCredential,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -16,14 +21,43 @@ import {
   uploadString,
   getDownloadURL,
 } from 'firebase/storage';
-import firebaseConfig from '../firebase-applet-config.json';
+import defaultFirebaseConfig from '../firebase-applet-config.json';
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || defaultFirebaseConfig.apiKey,
+  authDomain:
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || defaultFirebaseConfig.authDomain,
+  projectId:
+    import.meta.env.VITE_FIREBASE_PROJECT_ID || defaultFirebaseConfig.projectId,
+  storageBucket:
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ||
+    defaultFirebaseConfig.storageBucket,
+  messagingSenderId:
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ||
+    defaultFirebaseConfig.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || defaultFirebaseConfig.appId,
+  firestoreDatabaseId:
+    import.meta.env.VITE_FIREBASE_DATABASE_ID ||
+    defaultFirebaseConfig.firestoreDatabaseId,
+};
 
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('profile');
+googleProvider.addScope('email');
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+});
+
+// Ensure persistent login across redirects and page refreshes
+setPersistence(auth, browserLocalPersistence).catch((err) => {
+  console.warn('Firebase Auth persistence setup notice:', err);
+});
 
 export enum OperationType {
   CREATE = 'create',
@@ -92,8 +126,168 @@ async function testConnection() {
 }
 testConnection();
 
-export async function signInWithGoogle() {
+export function isEmbeddedInIframe(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+export function isMobileOrTabletBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+}
+
+export interface ParsedAuthError {
+  code: string;
+  message: string;
+  canUseRedirect: boolean;
+  unauthorizedDomain?: string;
+}
+
+export function formatFirebaseAuthError(error: unknown): ParsedAuthError {
+  const rawCode =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code || '')
+      : '';
+  const rawMessage = error instanceof Error ? error.message : String(error);
+  const currentHost =
+    typeof window !== 'undefined' ? window.location.hostname : 'your Vercel domain';
+
+  if (
+    rawCode.includes('auth/unauthorized-domain') ||
+    rawMessage.includes('auth/unauthorized-domain')
+  ) {
+    return {
+      code: 'auth/unauthorized-domain',
+      unauthorizedDomain: currentHost,
+      canUseRedirect: false,
+      message: `Domain "${currentHost}" is not yet authorized in Firebase Authentication. Add "${currentHost}" in Firebase Console → Authentication → Settings → Authorized domains (Project ID: ${firebaseConfig.projectId}).`,
+    };
+  }
+
+  if (
+    rawCode.includes('auth/popup-blocked') ||
+    rawMessage.includes('auth/popup-blocked')
+  ) {
+    return {
+      code: 'auth/popup-blocked',
+      canUseRedirect: !isEmbeddedInIframe(),
+      message:
+        'Your browser blocked the sign-in popup. Click "Continue with Google Redirect (No Popup)" below to sign in directly in this tab.',
+    };
+  }
+
+  if (
+    rawCode.includes('auth/popup-closed-by-user') ||
+    rawCode.includes('auth/cancelled-popup-request') ||
+    rawMessage.includes('auth/popup-closed-by-user')
+  ) {
+    return {
+      code: 'auth/popup-closed-by-user',
+      canUseRedirect: !isEmbeddedInIframe(),
+      message:
+        'The Google Sign-In window was closed before completing login. You can click "Continue with Google Redirect (No Popup)" below to sign in without a popup.',
+    };
+  }
+
+  if (
+    rawCode.includes('auth/account-exists-with-different-credential') ||
+    rawMessage.includes('auth/account-exists-with-different-credential')
+  ) {
+    return {
+      code: 'auth/account-exists-with-different-credential',
+      canUseRedirect: false,
+      message:
+        'An account already exists with the same email address under a different sign-in credential. Please sign in with your original account method.',
+    };
+  }
+
+  if (
+    rawCode.includes('auth/network-request-failed') ||
+    rawMessage.includes('auth/network-request-failed')
+  ) {
+    return {
+      code: 'auth/network-request-failed',
+      canUseRedirect: true,
+      message:
+        'Network request failed while connecting to Google Authentication. Please check your internet connection or firewall/ad-blocker and try again.',
+    };
+  }
+
+  return {
+    code: rawCode || 'auth/unknown',
+    canUseRedirect: !isEmbeddedInIframe(),
+    message: rawMessage || 'Unable to complete Google Sign-In. Please try again.',
+  };
+}
+
+/**
+ * Checks and resolves any pending Google Sign-In redirect result on page load.
+ */
+export async function checkGoogleRedirectResult(): Promise<UserCredential | null> {
+  try {
+    const result = await getRedirectResult(auth);
+    return result;
+  } catch (err) {
+    console.error('Firebase getRedirectResult error:', err);
+    throw err;
+  }
+}
+
+/**
+ * Explicitly initiates redirect-based Google Sign-In (no popup required).
+ * Falls back to popup only if running inside a cross-origin preview iframe where top-level redirect is blocked by Google X-Frame-Options.
+ */
+export async function signInWithGoogleRedirect(): Promise<UserCredential | null> {
+  if (!isEmbeddedInIframe()) {
+    await signInWithRedirect(auth, googleProvider);
+    return null;
+  }
   return signInWithPopup(auth, googleProvider);
+}
+
+/**
+ * Primary Google Sign-In flow:
+ * - Uses redirect authentication automatically on mobile/tablet browsers or when preferRedirect is true (if not inside an iframe).
+ * - Otherwise attempts signInWithPopup and automatically switches to signInWithRedirect if the browser blocks popups.
+ */
+export async function signInWithGoogle(
+  preferRedirect = false
+): Promise<UserCredential | null> {
+  const inIframe = isEmbeddedInIframe();
+  const useRedirectFirst =
+    !inIframe && (preferRedirect || isMobileOrTabletBrowser());
+
+  if (useRedirectFirst) {
+    await signInWithRedirect(auth, googleProvider);
+    return null;
+  }
+
+  try {
+    return await signInWithPopup(auth, googleProvider);
+  } catch (err) {
+    const code =
+      typeof err === 'object' && err !== null && 'code' in err
+        ? String((err as { code?: unknown }).code || '')
+        : '';
+
+    // Automatically fall back to redirect when popup is blocked or unsupported
+    if (
+      !inIframe &&
+      (code === 'auth/popup-blocked' ||
+        code === 'auth/operation-not-supported-in-this-environment' ||
+        code === 'auth/cancelled-popup-request')
+    ) {
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
+
+    throw err;
+  }
 }
 
 export async function signOutUser() {

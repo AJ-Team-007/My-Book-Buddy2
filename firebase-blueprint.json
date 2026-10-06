@@ -24,6 +24,10 @@
           "type": "string",
           "maxLength": 200000
         },
+        "email": {
+          "type": "string",
+          "maxLength": 150
+        },
         "class": {
           "type": "string",
           "minLength": 1,

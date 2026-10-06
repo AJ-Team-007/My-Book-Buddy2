@@ -8,14 +8,19 @@ import {
   Users,
   CheckCircle2,
   FlaskConical,
+  ArrowRight,
+  AlertTriangle,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { HERO_BOOKS_IMAGE } from '../data/mockData';
+import { ParsedAuthError } from '../firebase';
 import { BrandLogo } from './BrandLogo';
 
 interface AuthScreenProps {
-  onGoogleSignIn: () => Promise<void>;
+  onGoogleSignIn: (preferRedirect?: boolean) => Promise<void>;
   onEnterDemoMode: () => void;
-  authError: string | null;
+  authError: ParsedAuthError | null;
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({
@@ -23,14 +28,27 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   onEnterDemoMode,
   authError,
 }) => {
-  const [loading, setLoading] = useState(false);
+  const [loadingMode, setLoadingMode] = useState<'default' | 'redirect' | null>(
+    null
+  );
+  const [copiedDomain, setCopiedDomain] = useState(false);
 
-  const handleLogin = async () => {
-    setLoading(true);
+  const handleLogin = async (preferRedirect = false) => {
+    setLoadingMode(preferRedirect ? 'redirect' : 'default');
     try {
-      await onGoogleSignIn();
+      await onGoogleSignIn(preferRedirect);
     } finally {
-      setLoading(false);
+      setLoadingMode(null);
+    }
+  };
+
+  const handleCopyDomain = async (domain: string) => {
+    try {
+      await navigator.clipboard.writeText(domain);
+      setCopiedDomain(true);
+      window.setTimeout(() => setCopiedDomain(false), 2500);
+    } catch {
+      // Ignore clipboard error
     }
   };
 
@@ -121,21 +139,86 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             </div>
 
             {authError && (
-              <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs font-bold text-rose-300 text-center">
-                {authError}
+              <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 space-y-2.5">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-extrabold text-rose-300">
+                      Authentication Notice ({authError.code})
+                    </p>
+                    <p className="leading-relaxed">{authError.message}</p>
+                  </div>
+                </div>
+
+                {authError.unauthorizedDomain && (
+                  <div className="p-2.5 rounded-xl bg-[#070A18]/90 border border-white/10 flex items-center justify-between gap-2">
+                    <code className="text-[11px] font-mono text-[#00E5FF] truncate">
+                      {authError.unauthorizedDomain}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopyDomain(authError.unauthorizedDomain!)
+                      }
+                      className="px-2.5 py-1 rounded-lg bg-[#121836] hover:bg-white/10 border border-white/15 text-[11px] font-bold text-white flex items-center gap-1 shrink-0"
+                    >
+                      {copiedDomain ? (
+                        <>
+                          <Check className="w-3 h-3 text-[#10B981]" />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 text-[#38BDF8]" />
+                          <span>Copy Domain</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {authError.canUseRedirect && (
+                  <button
+                    type="button"
+                    disabled={loadingMode !== null}
+                    onClick={() => handleLogin(true)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  >
+                    <span>Switch to Redirect Sign-In (No Popup Needed)</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             )}
 
             <div className="space-y-3">
+              {/* Primary Google Sign-In Button */}
               <button
                 type="button"
-                disabled={loading}
-                onClick={handleLogin}
+                disabled={loadingMode !== null}
+                onClick={() => handleLogin(false)}
                 className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#7B3FE4] via-[#2563EB] to-[#00E5FF] hover:brightness-110 disabled:opacity-60 text-white text-sm font-extrabold shadow-[0_10px_30px_rgba(0,229,255,0.35)] flex items-center justify-center gap-3 transition-all cursor-pointer"
               >
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
                 <span>
-                  {loading ? 'Signing in with Google...' : 'Continue with Google Sign-In'}
+                  {loadingMode === 'default'
+                    ? 'Connecting to Google...'
+                    : 'Continue with Google'}
+                </span>
+              </button>
+
+              {/* Explicit Redirect-Based Google Sign-In Option (Popup-Free) */}
+              <button
+                type="button"
+                disabled={loadingMode !== null}
+                onClick={() => handleLogin(true)}
+                className="w-full py-3 px-5 rounded-2xl bg-[#121836] hover:bg-[#1E293B] disabled:opacity-60 border border-[#38BDF8]/40 text-xs font-extrabold text-[#38BDF8] flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <ArrowRight className="w-4 h-4 shrink-0" />
+                <span>
+                  {loadingMode === 'redirect'
+                    ? 'Redirecting to Google...'
+                    : 'Continue with Google Redirect (No Popup)'}
                 </span>
               </button>
 
